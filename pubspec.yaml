@@ -1,0 +1,42 @@
+name: utopia_flutter
+description: 虚拟乌托邦移动端应用
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # 状态管理
+  provider: ^6.1.1
+  
+  # 网络请求
+  dio: ^5.3.2
+  
+  # 本地存储
+  shared_preferences: ^2.2.2
+  
+  # UI组件
+  flutter_screenutil: ^5.9.0
+  flutter_svg: ^2.0.9
+  
+  # 工具类
+  intl: ^0.18.1
+  uuid: ^4.1.0
+  
+  # 路由
+  go_router: ^12.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/
