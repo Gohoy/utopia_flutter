@@ -329,7 +329,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Widget _buildFloatingActionButton() {
     return FloatingActionButton(
       onPressed: () => context.push('/create-entry'),
-      child: const Icon(Icons.add),
+      child: const Icon(Icons.add_a_photo),
     );
   }
 

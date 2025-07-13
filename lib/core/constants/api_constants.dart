@@ -34,8 +34,25 @@ class ApiConstants {
   static const String tagCategoriesPath = '$tagsPath/categories';
   static const String tagTreePath = '$tagsPath/tree';
 
+  // AI识别相关
+  static const String aiPath = '$apiVersion/ai';
+  static const String aiRecognizePath = '$aiPath/recognize';
+  static const String aiAutoTagPath = '$aiPath/auto-tag';
+  static const String aiGenerateTagsPath = '$aiPath/generate-tags';
+  static const String aiProvidersPath = '$aiPath/providers';
+
   // 本地存储键
   static const String tokenKey = 'auth_token';
   static const String userKey = 'user_info';
   static const String settingsKey = 'app_settings';
+    // MinIO 配置
+  static const String minioEndpoint = 'localhost';
+  static const int minioPort = 9000;
+  static const String minioAccessKey = 'utopia_minio_user';
+  static const String minioSecretKey = 'utopia_minio_password';
+  static const String minioBucketName = 'utopia-images';
+  
+  // AI 识图 API (使用通用的识图API，如百度、腾讯等)
+  static const String aiRecognitionUrl = 'YOUR_AI_RECOGNITION_API_URL';
+  static const String aiApiKey = 'YOUR_AI_API_KEY';
 }

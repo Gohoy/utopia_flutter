@@ -3,7 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/entry_provider.dart';
-import '../../providers/tag_provider.dart';
+// import '../../providers/tag_provider.dart';
 import '../../widgets/common/custom_button.dart';
 import '../../widgets/common/custom_text_field.dart';
 import '../../widgets/common/loading_widget.dart';
@@ -11,6 +11,9 @@ import '../../widgets/tags/tag_selector.dart';
 import '../../../data/models/tag_model.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/services/media_service.dart';
+import '../../../core/services/ai_recognition_service.dart';
+import 'dart:io';
 
 class CreateEntryPage extends StatefulWidget {
   const CreateEntryPage({Key? key}) : super(key: key);
@@ -24,11 +27,17 @@ class _CreateEntryPageState extends State<CreateEntryPage> {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
   final _locationController = TextEditingController();
-  
-  String _contentType = 'text';
+  final _mediaService = MediaService();
+
+  String _contentType = 'mixed';
   String _visibility = 'public';
   int? _moodScore;
   List<TagModel> _selectedTags = [];
+  
+  // 媒体相关状态
+  String? _selectedImageUrl;
+  File? _selectedImageFile;
+  bool _isProcessingImage = false;
 
   @override
   void dispose() {
@@ -55,42 +64,42 @@ class _CreateEntryPageState extends State<CreateEntryPage> {
                   children: [
                     // 标题输入
                     _buildTitleField(),
-                    
+
                     SizedBox(height: 20.h),
-                    
-                    // 内容类型选择
-                    _buildContentTypeSelector(),
-                    
+
+                    // 拍照区域
+                    _buildCameraSection(),
+
                     SizedBox(height: 20.h),
-                    
+
                     // 内容输入
                     _buildContentField(),
-                    
+
                     SizedBox(height: 20.h),
-                    
+
                     // 位置信息
                     _buildLocationField(),
-                    
+
                     SizedBox(height: 20.h),
-                    
+
                     // 心情评分
                     _buildMoodScoreSelector(),
-                    
+
                     SizedBox(height: 20.h),
-                    
+
                     // 可见性设置
                     _buildVisibilitySelector(),
-                    
+
                     SizedBox(height: 20.h),
-                    
+
                     // 标签选择
                     _buildTagSelector(),
-                    
+
                     SizedBox(height: 32.h),
-                    
+
                     // 提交按钮
                     _buildSubmitButton(entryProvider),
-                    
+
                     SizedBox(height: 32.h),
                   ],
                 ),
@@ -139,53 +148,146 @@ class _CreateEntryPageState extends State<CreateEntryPage> {
     );
   }
 
-  Widget _buildContentTypeSelector() {
+  Widget _buildCameraSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '内容类型',
+          '拍照识别',
           style: AppTextStyles.bodyLarge.copyWith(
             fontWeight: FontWeight.w600,
           ),
         ),
         SizedBox(height: 8.h),
-        Wrap(
-          spacing: 8.w,
-          children: [
-            _buildContentTypeChip('text', '文字', Icons.text_snippet_outlined),
-            _buildContentTypeChip('image', '图片', Icons.image_outlined),
-            _buildContentTypeChip('video', '视频', Icons.videocam_outlined),
-            _buildContentTypeChip('audio', '音频', Icons.audiotrack_outlined),
-            _buildContentTypeChip('mixed', '混合', Icons.dashboard_outlined),
-          ],
-        ),
+        
+        // 图片显示区域
+        if (_selectedImageUrl != null) ...[
+          Container(
+            width: double.infinity,
+            height: 200.h,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12.r),
+              child: Image.network(
+                _selectedImageUrl!,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                          : null,
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: AppColors.surfaceVariant,
+                    child: Center(
+                      child: Icon(
+                        Icons.error,
+                        size: 48.w,
+                        color: AppColors.error,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          SizedBox(height: 12.h),
+        ],
+        
+                 // 拍照按钮
+         Row(
+           children: [
+             Expanded(
+               child: CustomButton(
+                 text: '拍照识别',
+                 onPressed: _isProcessingImage ? null : _captureAndRecognize,
+                 isLoading: _isProcessingImage,
+                 icon: Icon(Icons.camera_alt, size: 18.w),
+               ),
+             ),
+             SizedBox(width: 12.w),
+             Expanded(
+               child: CustomButton(
+                 text: '从相册选择',
+                 onPressed: _isProcessingImage ? null : _selectAndRecognize,
+                 isLoading: _isProcessingImage,
+                 icon: Icon(Icons.photo_library, size: 18.w),
+                 type: ButtonType.secondary,
+               ),
+             ),
+           ],
+         ),
+        
+        // 提示文字
+        if (_selectedImageUrl == null) ...[
+          SizedBox(height: 8.h),
+          Text(
+            '点击拍照或选择图片，AI将自动识别内容并填充图鉴信息',
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
       ],
     );
   }
 
-  Widget _buildContentTypeChip(String type, String label, IconData icon) {
-    final isSelected = _contentType == type;
-    return FilterChip(
-      selected: isSelected,
-      onSelected: (selected) {
-        setState(() {
-          _contentType = type;
-        });
-      },
-      avatar: Icon(
-        icon,
-        size: 18.w,
-        color: isSelected ? AppColors.white : AppColors.textSecondary,
-      ),
-      label: Text(label),
-      backgroundColor: AppColors.surfaceVariant,
-      selectedColor: AppColors.primary,
-      labelStyle: AppTextStyles.bodyMedium.copyWith(
-        color: isSelected ? AppColors.white : AppColors.textPrimary,
-      ),
-    );
-  }
+  // Widget _buildContentTypeSelector() {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       Text(
+  //         '内容类型',
+  //         style: AppTextStyles.bodyLarge.copyWith(
+  //           fontWeight: FontWeight.w600,
+  //         ),
+  //       ),
+  //       SizedBox(height: 8.h),
+  //       Wrap(
+  //         spacing: 8.w,
+  //         children: [
+  //           _buildContentTypeChip('mixed', '混合', Icons.dashboard_outlined),
+  //           _buildContentTypeChip('text', '文字', Icons.text_snippet_outlined),
+  //           // _buildContentTypeChip('image', '图片', Icons.image_outlined),
+  //           // _buildContentTypeChip('video', '视频', Icons.videocam_outlined),
+  //           // _buildContentTypeChip('audio', '音频', Icons.audiotrack_outlined),
+  //         ],
+  //       ),
+  //     ],
+  //   );
+  // }
+
+  // Widget _buildContentTypeChip(String type, String label, IconData icon) {
+  //   final isSelected = _contentType == type;
+  //   return FilterChip(
+  //     selected: isSelected,
+  //     onSelected: (selected) {
+  //       setState(() {
+  //         _contentType = type;
+  //       });
+  //     },
+  //     avatar: Icon(
+  //       icon,
+  //       size: 18.w,
+  //       color: isSelected ? AppColors.white : AppColors.textSecondary,
+  //     ),
+  //     label: Text(label),
+  //     backgroundColor: AppColors.surfaceVariant,
+  //     selectedColor: AppColors.primary,
+  //     labelStyle: AppTextStyles.bodyMedium.copyWith(
+  //       color: isSelected ? AppColors.white : AppColors.textPrimary,
+  //     ),
+  //   );
+  // }
 
   Widget _buildContentField() {
     return Column(
@@ -284,7 +386,9 @@ class _CreateEntryPageState extends State<CreateEntryPage> {
                   child: Text(
                     score.toString(),
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: isSelected ? AppColors.white : AppColors.textSecondary,
+                      color: isSelected
+                          ? AppColors.white
+                          : AppColors.textSecondary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -409,9 +513,9 @@ class _CreateEntryPageState extends State<CreateEntryPage> {
                 ),
               ],
             ),
-            
+
             SizedBox(height: 16.h),
-            
+
             // 标签选择器
             Expanded(
               child: TagSelector(
@@ -446,16 +550,17 @@ class _CreateEntryPageState extends State<CreateEntryPage> {
 
     final success = await entryProvider.createEntry(
       title: _titleController.text.trim(),
-      content: _contentController.text.trim().isEmpty 
-          ? null 
+      content: _contentController.text.trim().isEmpty
+          ? null
           : _contentController.text.trim(),
       contentType: _contentType,
-      locationName: _locationController.text.trim().isEmpty 
-          ? null 
+      locationName: _locationController.text.trim().isEmpty
+          ? null
           : _locationController.text.trim(),
       moodScore: _moodScore,
       visibility: _visibility,
       tags: _selectedTags.map((tag) => tag.name).toList(),
+      mediaUrls: _selectedImageUrl != null ? [_selectedImageUrl!] : [],
     );
 
     if (success) {
@@ -486,9 +591,9 @@ class _CreateEntryPageState extends State<CreateEntryPage> {
 
   void _showExitDialog() {
     final hasContent = _titleController.text.trim().isNotEmpty ||
-                      _contentController.text.trim().isNotEmpty ||
-                      _locationController.text.trim().isNotEmpty ||
-                      _selectedTags.isNotEmpty;
+        _contentController.text.trim().isNotEmpty ||
+        _locationController.text.trim().isNotEmpty ||
+        _selectedTags.isNotEmpty;
 
     if (hasContent) {
       showDialog(
@@ -523,5 +628,143 @@ class _CreateEntryPageState extends State<CreateEntryPage> {
         backgroundColor: isError ? AppColors.error : AppColors.success,
       ),
     );
+  }
+
+  /// 拍照并识别
+  Future<void> _captureAndRecognize() async {
+    setState(() {
+      _isProcessingImage = true;
+    });
+
+    try {
+             final result = await _mediaService.captureAndRecognize();
+       
+       if (result != null) {
+         setState(() {
+           _selectedImageUrl = result.imageUrl;
+           _selectedImageFile = result.imageFile;
+         });
+         
+         // 使用AI识别结果填充表单
+         if (result.recognition != null) {
+           final recognition = result.recognition!;
+           
+           // 填充标题
+           if (recognition.title != null && _titleController.text.isEmpty) {
+             _titleController.text = recognition.title!;
+           }
+           
+           // 填充内容
+           if (recognition.description != null && _contentController.text.isEmpty) {
+             _contentController.text = recognition.description!;
+           }
+           
+           // 填充标签
+           if (recognition.tags.isNotEmpty) {
+             final newTags = recognition.tags.map((tagName) => TagModel(
+               id: tagName,
+               name: tagName,
+               category: recognition.category ?? '其他',
+               level: 0,
+               usageCount: 0,
+               qualityScore: 0.5,
+               aliases: [],
+               status: 'active',
+               createdAt: DateTime.now(),
+             )).toList();
+             
+             setState(() {
+               _selectedTags = newTags;
+             });
+           }
+           
+           // 设置内容类型为混合
+           setState(() {
+             _contentType = 'mixed';
+           });
+           
+           _showMessage('AI识别完成！已自动填充图鉴信息', isError: false);
+         } else {
+           _showMessage('图片上传成功，但AI识别失败，请手动填写信息', isError: false);
+         }
+       } else {
+         _showMessage('拍照或上传失败，请重试');
+       }
+    } catch (e) {
+      _showMessage('拍照识别失败：$e');
+    } finally {
+      setState(() {
+        _isProcessingImage = false;
+      });
+    }
+  }
+
+  /// 从相册选择并识别
+  Future<void> _selectAndRecognize() async {
+    setState(() {
+      _isProcessingImage = true;
+    });
+
+    try {
+             final result = await _mediaService.selectAndRecognize();
+       
+       if (result != null) {
+         setState(() {
+           _selectedImageUrl = result.imageUrl;
+           _selectedImageFile = result.imageFile;
+         });
+         
+         // 使用AI识别结果填充表单
+         if (result.recognition != null) {
+           final recognition = result.recognition!;
+           
+           // 填充标题
+           if (recognition.title != null && _titleController.text.isEmpty) {
+             _titleController.text = recognition.title!;
+           }
+           
+           // 填充内容
+           if (recognition.description != null && _contentController.text.isEmpty) {
+             _contentController.text = recognition.description!;
+           }
+           
+           // 填充标签
+           if (recognition.tags.isNotEmpty) {
+             final newTags = recognition.tags.map((tagName) => TagModel(
+               id: tagName,
+               name: tagName,
+               category: recognition.category ?? '其他',
+               level: 0,
+               usageCount: 0,
+               qualityScore: 0.5,
+               aliases: [],
+               status: 'active',
+               createdAt: DateTime.now(),
+             )).toList();
+             
+             setState(() {
+               _selectedTags = newTags;
+             });
+           }
+           
+           // 设置内容类型为混合
+           setState(() {
+             _contentType = 'mixed';
+           });
+           
+           _showMessage('AI识别完成！已自动填充图鉴信息', isError: false);
+         } else {
+           _showMessage('图片上传成功，但AI识别失败，请手动填写信息', isError: false);
+         }
+       } else {
+         _showMessage('选择图片或上传失败，请重试');
+       }
+    } catch (e) {
+      _showMessage('选择识别失败：$e');
+    } finally {
+      setState(() {
+        _isProcessingImage = false;
+      });
+    }
   }
 }

@@ -3,7 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../presentation/pages/auth/login_page.dart';
 import '../presentation/pages/auth/register_page.dart';
-import '../presentation/pages/home/home_page.dart';
+import '../presentation/pages/home_page.dart';
+import '../presentation/pages/camera_recognition_page.dart';
 import '../presentation/pages/entry/create_entry_page.dart';
 import '../presentation/pages/tags/tag_selector_page.dart';
 import '../presentation/providers/auth_provider.dart';
@@ -75,6 +76,14 @@ class AppRoutes {
           builder: (context, state) {
             print('📱 构建首页');
             return const HomePage();
+          },
+        ),
+        GoRoute(
+          path: '/camera-recognition',
+          name: 'camera-recognition',
+          builder: (context, state) {
+            print('📱 构建拍照识别页面');
+            return const CameraRecognitionPage();
           },
         ),
         GoRoute(

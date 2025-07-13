@@ -73,6 +73,7 @@ class EntryProvider with ChangeNotifier {
     int? moodScore,
     String visibility = 'public',
     List<String> tags = const [],
+    List<String> mediaUrls = const [],
   }) async {
     _setLoading(true);
     _setError(null);
@@ -89,6 +90,7 @@ class EntryProvider with ChangeNotifier {
         moodScore: moodScore,
         visibility: visibility,
         tags: tags,
+        mediaUrls: mediaUrls,
       );
 
       final newEntry = await _entryRepository.createEntry(request);
@@ -212,6 +214,7 @@ class EntryProvider with ChangeNotifier {
     int? moodScore,
     String visibility = 'public',
     List<String> tags = const [],
+    List<String> mediaUrls = const [],
   }) async {
     _setLoading(true);
     _setError(null);
@@ -228,6 +231,7 @@ class EntryProvider with ChangeNotifier {
         moodScore: moodScore,
         visibility: visibility,
         tags: tags,
+        mediaUrls: mediaUrls,
       );
 
       final updatedEntry = await _entryRepository.updateEntry(id, request);

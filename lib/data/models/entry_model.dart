@@ -1,4 +1,5 @@
 import 'user_model.dart';
+import 'media_model.dart';
 
 class EntryModel {
   final String id;
@@ -16,6 +17,8 @@ class EntryModel {
   final int likeCount;
   final List<String> tags;
   final int mediaCount;
+  final List<MediaModel> media;
+  final bool hasMedia;
   final UserModel? author;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -36,10 +39,11 @@ class EntryModel {
     required this.likeCount,
     required this.tags,
     required this.mediaCount,
+    this.media = const [],
     this.author,
     required this.createdAt,
     required this.updatedAt,
-  });
+  }) : hasMedia = media.isNotEmpty;
 
   factory EntryModel.fromJson(Map<String, dynamic> json) {
     return EntryModel(
@@ -58,6 +62,10 @@ class EntryModel {
       likeCount: json['like_count'] as int? ?? 0,
       tags: List<String>.from(json['tags'] as List? ?? []),
       mediaCount: json['media_count'] as int? ?? 0,
+      media: json['media'] != null
+          ? List<MediaModel>.from(
+              (json['media'] as List).map((x) => MediaModel.fromJson(x)))
+          : [],
       author: json['author'] != null
           ? UserModel.fromJson(json['author'] as Map<String, dynamic>)
           : null,
@@ -83,6 +91,7 @@ class EntryModel {
       'like_count': likeCount,
       'tags': tags,
       'media_count': mediaCount,
+      'media': media.map((m) => m.toJson()).toList(),
       'author': author?.toJson(),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
@@ -105,6 +114,7 @@ class EntryModel {
     int? likeCount,
     List<String>? tags,
     int? mediaCount,
+    List<MediaModel>? media,
     UserModel? author,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -125,6 +135,7 @@ class EntryModel {
       likeCount: likeCount ?? this.likeCount,
       tags: tags ?? this.tags,
       mediaCount: mediaCount ?? this.mediaCount,
+      media: media ?? this.media,
       author: author ?? this.author,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -144,6 +155,7 @@ class CreateEntryRequest {
   final int? moodScore;
   final String visibility;
   final List<String> tags;
+  final List<String> mediaUrls;
 
   CreateEntryRequest({
     required this.title,
@@ -156,6 +168,7 @@ class CreateEntryRequest {
     this.moodScore,
     this.visibility = 'public',
     this.tags = const [],
+    this.mediaUrls = const [],
   });
 
   Map<String, dynamic> toJson() {
@@ -170,6 +183,7 @@ class CreateEntryRequest {
       'mood_score': moodScore,
       'visibility': visibility,
       'tags': tags,
+      'media_urls': mediaUrls,
     };
   }
 }
