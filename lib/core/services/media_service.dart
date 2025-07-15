@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
 import 'image_service.dart';
 import 'ai_recognition_service.dart';
+import '../models/recognition_result.dart';
 import '../../data/models/media_model.dart';
 import '../../data/models/entry_model.dart';
 
@@ -206,10 +207,31 @@ class PhotoRecognitionResult {
 
   /// 转换为Entry创建的建议数据
   EntryCreationSuggestion toEntryCreationSuggestion() {
+    // 从识别结果中派生标题
+    String title = '未识别的图片';
+    String? content;
+    
+    if (recognition != null) {
+      // 使用最有信心的对象名称作为标题
+      if (recognition!.objects.isNotEmpty) {
+        final mostConfident = recognition!.objects.reduce((a, b) => a.confidence > b.confidence ? a : b);
+        title = mostConfident.name;
+        
+        // 创建内容描述
+        final objectNames = recognition!.objects.map((obj) => obj.name).take(3).join('、');
+        content = '识别到的物体：$objectNames';
+        if (recognition!.colors.isNotEmpty) {
+          content += '\n主要颜色：${recognition!.colors.take(3).join('、')}';
+        }
+      } else if (recognition!.scene.isNotEmpty) {
+        title = recognition!.scene['description'] ?? recognition!.scene.values.first?.toString() ?? title;
+      }
+    }
+    
     return EntryCreationSuggestion(
-      title: recognition?.title ?? '未识别的图片',
-      content: recognition?.description,
-      tags: recognition?.tags ?? [],
+      title: title,
+      content: content,
+      tags: recognition?.suggestedTags ?? [],
       imageUrl: imageUrl,
       contentType: 'mixed',
     );

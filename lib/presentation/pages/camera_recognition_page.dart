@@ -6,7 +6,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import '../../core/services/ai_recognition_service.dart';
-import '../../core/models/recognition_result.dart' as models;
+import '../../core/models/recognition_result.dart';
 
 class CameraRecognitionPage extends StatefulWidget {
   const CameraRecognitionPage({Key? key}) : super(key: key);
@@ -21,7 +21,7 @@ class _CameraRecognitionPageState extends State<CameraRecognitionPage> {
   
   File? _selectedImage;
   Uint8List? _selectedImageBytes; // 为Web平台存储图片字节数据
-  models.RecognitionResult? _recognitionResult;
+  RecognitionResult? _recognitionResult;
   bool _isLoading = false;
   String _loadingMessage = '';
 
@@ -453,25 +453,26 @@ class _CameraRecognitionPageState extends State<CameraRecognitionPage> {
     });
 
     try {
-      late models.RecognitionResult result;
+      RecognitionResult? result;
       
       if (kIsWeb) {
         // Web平台：使用模拟识别，因为无法直接处理File
-        result = await _aiService.mockRecognition() as models.RecognitionResult;
+        result = await _aiService.mockRecognition();
       } else {
         // 移动平台：使用文件识别
-        result = await _aiService.recognizeFromFile(_selectedImage!) as models.RecognitionResult;
+        result = await _aiService.recognizeFromFile(_selectedImage!);
       }
       
       setState(() {
         _recognitionResult = result;
         _isLoading = false;
       });
-    } catch (e) {
+    } catch (e,s) {
       setState(() {
         _isLoading = false;
       });
-      _showErrorDialog('识别失败: ${e.toString()}');
+      _showErrorDialog('识别失败3: ${e.toString()}');
+      print('识别失败31: ${e.toString()},${s.toString()}');
     }
   }
 

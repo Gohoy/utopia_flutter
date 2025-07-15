@@ -649,22 +649,39 @@ class _CreateEntryPageState extends State<CreateEntryPage> {
          if (result.recognition != null) {
            final recognition = result.recognition!;
            
-           // 填充标题
-           if (recognition.title != null && _titleController.text.isEmpty) {
-             _titleController.text = recognition.title!;
+           // 填充标题 - 使用最有信心的对象名称或场景描述
+           String? derivedTitle;
+           if (recognition.objects.isNotEmpty) {
+             final mostConfident = recognition.objects.reduce((a, b) => a.confidence > b.confidence ? a : b);
+             derivedTitle = mostConfident.name;
+           } else if (recognition.scene.isNotEmpty) {
+             derivedTitle = recognition.scene['description'] ?? recognition.scene.values.first?.toString();
            }
            
-           // 填充内容
-           if (recognition.description != null && _contentController.text.isEmpty) {
-             _contentController.text = recognition.description!;
+           if (derivedTitle != null && _titleController.text.isEmpty) {
+             _titleController.text = derivedTitle;
+           }
+           
+           // 填充内容 - 使用识别结果创建描述
+           String? derivedDescription;
+           if (recognition.objects.isNotEmpty) {
+             final objectNames = recognition.objects.map((obj) => obj.name).take(3).join('、');
+             derivedDescription = '识别到的物体：$objectNames';
+             if (recognition.colors.isNotEmpty) {
+               derivedDescription += '\n主要颜色：${recognition.colors.take(3).join('、')}';
+             }
+           }
+           
+           if (derivedDescription != null && _contentController.text.isEmpty) {
+             _contentController.text = derivedDescription;
            }
            
            // 填充标签
-           if (recognition.tags.isNotEmpty) {
-             final newTags = recognition.tags.map((tagName) => TagModel(
+           if (recognition.suggestedTags.isNotEmpty) {
+             final newTags = recognition.suggestedTags.map((tagName) => TagModel(
                id: tagName,
                name: tagName,
-               category: recognition.category ?? '其他',
+               category: recognition.objects.isNotEmpty ? recognition.objects.first.category : '其他',
                level: 0,
                usageCount: 0,
                qualityScore: 0.5,
@@ -718,22 +735,39 @@ class _CreateEntryPageState extends State<CreateEntryPage> {
          if (result.recognition != null) {
            final recognition = result.recognition!;
            
-           // 填充标题
-           if (recognition.title != null && _titleController.text.isEmpty) {
-             _titleController.text = recognition.title!;
+           // 填充标题 - 使用最有信心的对象名称或场景描述
+           String? derivedTitle;
+           if (recognition.objects.isNotEmpty) {
+             final mostConfident = recognition.objects.reduce((a, b) => a.confidence > b.confidence ? a : b);
+             derivedTitle = mostConfident.name;
+           } else if (recognition.scene.isNotEmpty) {
+             derivedTitle = recognition.scene['description'] ?? recognition.scene.values.first?.toString();
            }
            
-           // 填充内容
-           if (recognition.description != null && _contentController.text.isEmpty) {
-             _contentController.text = recognition.description!;
+           if (derivedTitle != null && _titleController.text.isEmpty) {
+             _titleController.text = derivedTitle;
+           }
+           
+           // 填充内容 - 使用识别结果创建描述
+           String? derivedDescription;
+           if (recognition.objects.isNotEmpty) {
+             final objectNames = recognition.objects.map((obj) => obj.name).take(3).join('、');
+             derivedDescription = '识别到的物体：$objectNames';
+             if (recognition.colors.isNotEmpty) {
+               derivedDescription += '\n主要颜色：${recognition.colors.take(3).join('、')}';
+             }
+           }
+           
+           if (derivedDescription != null && _contentController.text.isEmpty) {
+             _contentController.text = derivedDescription;
            }
            
            // 填充标签
-           if (recognition.tags.isNotEmpty) {
-             final newTags = recognition.tags.map((tagName) => TagModel(
+           if (recognition.suggestedTags.isNotEmpty) {
+             final newTags = recognition.suggestedTags.map((tagName) => TagModel(
                id: tagName,
                name: tagName,
-               category: recognition.category ?? '其他',
+               category: recognition.objects.isNotEmpty ? recognition.objects.first.category : '其他',
                level: 0,
                usageCount: 0,
                qualityScore: 0.5,

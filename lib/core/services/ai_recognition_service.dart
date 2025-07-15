@@ -3,36 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
 import '../constants/api_constants.dart';
-
-/// AI识图结果模型
-class RecognitionResult {
-  final String? title;
-  final String? description;
-  final String? category;
-  final List<String> tags;
-  final double confidence;
-  final Map<String, dynamic> rawData;
-
-  RecognitionResult({
-    this.title,
-    this.description,
-    this.category,
-    this.tags = const [],
-    this.confidence = 0.0,
-    this.rawData = const {},
-  });
-
-  factory RecognitionResult.fromJson(Map<String, dynamic> json) {
-    return RecognitionResult(
-      title: json['title'] as String?,
-      description: json['description'] as String?,
-      category: json['category'] as String?,
-      tags: List<String>.from(json['tags'] ?? []),
-      confidence: (json['confidence'] ?? 0.0).toDouble(),
-      rawData: json,
-    );
-  }
-}
+import '../models/recognition_result.dart';
 
 class AIRecognitionService {
   final Dio _dio = Dio();
@@ -108,50 +79,7 @@ class AIRecognitionService {
     }
   }
 
-  /// 解析AI识别结果
-  RecognitionResult _parseRecognitionResult(Map<String, dynamic> data) {
-    // 这里需要根据你使用的AI服务的返回格式进行调整
-    // 以下是通用的解析示例
 
-    String? title;
-    String? description;
-    String? category;
-    List<String> tags = [];
-    double confidence = 0.0;
-
-    // 示例：如果使用百度AI
-    if (data['result'] != null) {
-      final result = data['result'];
-
-      // 尝试从不同字段获取信息
-      title = result['name'] ?? result['title'];
-      description = result['description'] ?? result['summary'];
-      category = result['category'];
-      confidence = (result['score'] ?? 0.0).toDouble();
-
-      // 解析标签
-      if (result['tags'] != null) {
-        tags = List<String>.from(result['tags']);
-      }
-
-      // 如果没有直接的标签，尝试从关键词生成
-      if (tags.isEmpty && result['keywords'] != null) {
-        tags = List<String>.from(result['keywords']);
-      }
-    }
-
-    // 如果没有获取到标题，使用类别或生成默认标题
-    title ??= category ?? '未知物体';
-
-    return RecognitionResult(
-      title: title,
-      description: description,
-      category: category,
-      tags: tags,
-      confidence: confidence,
-      rawData: data,
-    );
-  }
 
   /// 模拟AI识别（用于测试）
   Future<RecognitionResult> mockRecognition() async {
@@ -160,44 +88,54 @@ class AIRecognitionService {
     // 模拟不同类型的识别结果
     final mockResults = [
       RecognitionResult(
-        title: '美丽的花朵',
-        description: '这是一朵盛开的玫瑰花，颜色鲜艳，花瓣层次分明。',
-        category: '植物',
-        tags: ['花朵', '玫瑰', '植物', '自然'],
-        confidence: 0.95,
-        rawData: {'mock': true},
+        objects: [
+          RecognizedObject(name: '玫瑰花', confidence: 0.95, category: '植物'),
+          RecognizedObject(name: '花瓣', confidence: 0.88, category: '植物部位'),
+        ],
+        scene: {'type': '花园', 'lighting': '自然光', 'setting': '户外'},
+        colors: ['红色', '绿色', '粉色'],
+        suggestedTags: ['花朵', '玫瑰', '植物', '自然', '美丽'],
+        tagGenerationMessage: '成功识别到花卉相关内容',
       ),
       RecognitionResult(
-        title: '可爱的小猫',
-        description: '一只毛茸茸的小猫咪，眼睛明亮，非常可爱。',
-        category: '动物',
-        tags: ['猫', '宠物', '动物', '可爱'],
-        confidence: 0.92,
-        rawData: {'mock': true},
+        objects: [
+          RecognizedObject(name: '猫', confidence: 0.92, category: '动物'),
+          RecognizedObject(name: '毛发', confidence: 0.85, category: '动物特征'),
+        ],
+        scene: {'type': '室内', 'lighting': '柔和光线', 'setting': '家居'},
+        colors: ['橙色', '白色', '棕色'],
+        suggestedTags: ['猫', '宠物', '动物', '可爱', '毛茸茸'],
+        tagGenerationMessage: '成功识别到宠物相关内容',
       ),
       RecognitionResult(
-        title: '美味的蛋糕',
-        description: '精致的生日蛋糕，装饰华丽，看起来非常美味。',
-        category: '食物',
-        tags: ['蛋糕', '甜点', '食物', '美味'],
-        confidence: 0.88,
-        rawData: {'mock': true},
+        objects: [
+          RecognizedObject(name: '蛋糕', confidence: 0.88, category: '食物'),
+          RecognizedObject(name: '奶油', confidence: 0.82, category: '食物配料'),
+        ],
+        scene: {'type': '餐桌', 'lighting': '室内光', 'setting': '聚会'},
+        colors: ['白色', '粉色', '黄色'],
+        suggestedTags: ['蛋糕', '甜点', '食物', '美味', '庆祝'],
+        tagGenerationMessage: '成功识别到美食相关内容',
       ),
       RecognitionResult(
-        title: '壮观的风景',
-        description: '美丽的山水风景，蓝天白云，令人心旷神怡。',
-        category: '风景',
-        tags: ['风景', '山水', '自然', '美丽'],
-        confidence: 0.90,
-        rawData: {'mock': true},
+        objects: [
+          RecognizedObject(name: '山脉', confidence: 0.90, category: '地理'),
+          RecognizedObject(name: '云朵', confidence: 0.85, category: '天气'),
+        ],
+        scene: {'type': '自然风光', 'lighting': '阳光', 'setting': '户外'},
+        colors: ['蓝色', '白色', '绿色'],
+        suggestedTags: ['风景', '山水', '自然', '美丽', '宁静'],
+        tagGenerationMessage: '成功识别到风景相关内容',
       ),
       RecognitionResult(
-        title: '精美的建筑',
-        description: '古典建筑风格，雕刻精美，具有历史文化价值。',
-        category: '建筑',
-        tags: ['建筑', '古典', '历史', '文化'],
-        confidence: 0.85,
-        rawData: {'mock': true},
+        objects: [
+          RecognizedObject(name: '古建筑', confidence: 0.85, category: '建筑'),
+          RecognizedObject(name: '雕刻', confidence: 0.78, category: '装饰'),
+        ],
+        scene: {'type': '历史遗迹', 'lighting': '自然光', 'setting': '古迹'},
+        colors: ['灰色', '棕色', '金色'],
+        suggestedTags: ['建筑', '古典', '历史', '文化', '艺术'],
+        tagGenerationMessage: '成功识别到建筑相关内容',
       ),
     ];
 
